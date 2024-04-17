@@ -143,13 +143,32 @@ const hsl = (context: Context, args: CSSValue[]): number => {
     return pack(r * 255, g * 255, b * 255, a);
 };
 
+const oklch = (context: Context, args: CSSValue[]) => {
+  const tokens = args.filter(nonFunctionArgSeparator);
+  const lightness = tokens[0], chroma = tokens[1], hue = tokens[2], alpha = tokens[3];
+  const l = isLengthPercentage(lightness) ? lightness.number / 100 : 0;
+  const c = isLengthPercentage(chroma) ? chroma.number / 100 : 0;
+  const h = hue.type === 17 /* NUMBER_TOKEN */ ? deg(hue.number) : angle.parse(context, hue);
+  const a = typeof alpha !== 'undefined' && isLengthPercentage(alpha) ? getAbsoluteValue(alpha, 1) : 1;
+  const hrad = h / (Math.PI * 180);
+  const lr = l * 255;
+  const cr = c * 128;
+  const x = cr * Math.cos(hrad);
+  const y = cr * Math.sin(hrad);
+  const r = lr + x;
+  const g = lr - x * 0.57735 - y * 1.1547;
+  const b = lr + y * 1.73205;
+  return pack(clamp(r, 0, 255), clamp(g, 0, 255), clamp(b, 0, 255), a);
+};
+
 const SUPPORTED_COLOR_FUNCTIONS: {
     [key: string]: (context: Context, args: CSSValue[]) => number;
 } = {
     hsl: hsl,
     hsla: hsl,
     rgb: rgb,
-    rgba: rgb
+    rgba: rgb,
+    oklch: oklch
 };
 
 export const parseColor = (context: Context, value: string): Color =>
